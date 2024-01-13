@@ -20,7 +20,7 @@ export type SocialIcons = {
 };
 
 export type SocialMedia =
-  | "Github"
+  | "GitHub"
   | "Facebook"
   | "Instagram"
   | "LinkedIn"
