@@ -1,13 +1,13 @@
 import type { Site, SocialObjects } from "./types";
 
 export const SITE: Site = {
-  website: "https://astro-paper.pages.dev/", // replace this with your deployed domain
-  author: "Sat Naing",
-  desc: "A minimal, responsive and SEO-friendly Astro blog theme.",
-  title: "AstroPaper",
+  website: "https://kyleronning.com/", // replace this with your deployed domain
+  author: "Kyle Ronning",
+  desc: "Software engineer, entrepreneur, etc",
+  title: "Kyle Ronning",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
-  postPerPage: 3,
+  postPerPage: 40,
 };
 
 export const LOCALE = ["en-EN"]; // set to [] to use the environment default
