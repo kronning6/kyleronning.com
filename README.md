@@ -1,4 +1,4 @@
-# AstroPaper 📄
+# Kyle Ronning - build with AstroPaper 📄
 
 ![AstroPaper](public/astropaper-og.jpg)
 ![Typescript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
