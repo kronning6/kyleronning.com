@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
 }
 
 @theme inline {
@@ -14,8 +14,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #000000;
+    --foreground: #ffffff;
   }
 }
 
@@ -23,11 +23,87 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.site-root {
+  min-height: 100vh;
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 3rem 1.5rem 4rem;
+}
+
+.page-frame {
+  display: grid;
+  gap: 2rem;
+  margin: 0 auto;
+  max-width: 600px;
+}
+
+.journal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.journal-nav a {
+  text-decoration: none;
+}
+
+.journal-nav a::before {
+  content: "• ";
+}
+
+.journal-block {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.journal-title {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  margin: 0;
+  text-transform: lowercase;
+}
+
+.journal-copy {
+  display: grid;
+  gap: 1rem;
+}
+
+.journal-copy p {
+  line-height: 1.7;
+  margin: 0;
+}
+
+.home-shell {
+  min-height: 100vh;
+  position: relative;
+}
+
+.home-nav-bar {
+  left: 0;
+  padding: 3rem 1.5rem 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+.home-stage {
+  height: 100vh;
+  width: 100vw;
 }
 
 .dvd-stage {
-  background: var(--background);
-  height: 100svh;
+  height: 100%;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -39,9 +115,10 @@ body {
   height: max-content;
   left: 0;
   justify-content: center;
+  overflow: hidden;
   position: absolute;
   top: 0;
-  will-change: transform;
+  will-change: left, top;
   width: max-content;
 }
 
@@ -53,11 +130,11 @@ body {
 }
 
 .dvd-logo-standard {
-  font-size: clamp(1.2rem, 4vw, 3.2rem);
+  font-size: clamp(2.2rem, 8vw, 5.5rem);
 }
 
 .dvd-logo-vt323 {
-  font-size: clamp(1.45rem, 4.8vw, 3.8rem);
+  font-size: clamp(2.6rem, 9.4vw, 6.75rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -69,6 +146,12 @@ body {
 
   .dvd-logo-shell {
     position: static;
-    transform: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-shell,
+  .home-nav-bar {
+    padding: 1.25rem;
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SiteNav } from "~/components/site-nav";
 
 const FONT_OPTIONS = [
   {
@@ -32,62 +33,113 @@ const FONT_OPTIONS = [
 export default function Home() {
   const stageRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLHeadingElement>(null);
+  const readyRef = useRef(false);
   const positionRef = useRef({ x: 0, y: 0 });
   const velocityRef = useRef({ x: 135, y: 95 });
   const frameRef = useRef<number | null>(null);
   const previousTimeRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<number | null>(null);
+  const moveTimeoutRef = useRef<number | null>(null);
+  const preserveCenterRef = useRef(false);
+  const fitScaleRef = useRef(1);
+  const shellScaleRef = useRef(1);
+  const visualShellScaleRef = useRef(2);
   const sizeRef = useRef({
     width: 0,
     height: 0,
+    effectiveWidth: 0,
+    effectiveHeight: 0,
     stageWidth: 0,
     stageHeight: 0,
   });
 
   const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [shellSize, setShellSize] = useState({ width: 0, height: 0 });
   const [fontIndex, setFontIndex] = useState(0);
+  const [isReady, setIsReady] = useState(false);
+  const [isShrinking, setIsShrinking] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [visualShellScale, setVisualShellScale] = useState(2);
   const activeFont = FONT_OPTIONS[fontIndex];
 
   useEffect(() => {
     const updateMeasurements = () => {
       const stage = stageRef.current;
-      const logo = logoRef.current;
+      const text = textRef.current;
 
-      if (!stage || !logo) {
+      if (!stage || !text) {
         return;
       }
 
       const stageRect = stage.getBoundingClientRect();
-      const logoRect = logo.getBoundingClientRect();
+      const naturalWidth = text.offsetWidth;
+      const naturalHeight = text.offsetHeight;
+      const targetWidth = Math.max(0, Math.min(300, stageRect.width - 48));
+      const fitScale = naturalWidth > 0 ? targetWidth / naturalWidth : 1;
+
+      fitScaleRef.current = fitScale;
+      setScale(fitScale * shellScaleRef.current);
+
+      const width = naturalWidth * fitScale * shellScaleRef.current;
+      const height = naturalHeight * fitScale * shellScaleRef.current;
+      const effectiveWidth = width * visualShellScaleRef.current;
+      const effectiveHeight = height * visualShellScaleRef.current;
+
       const nextSize = {
-        width: logoRect.width,
-        height: logoRect.height,
+        width,
+        height,
+        effectiveWidth,
+        effectiveHeight,
         stageWidth: stageRect.width,
         stageHeight: stageRect.height,
       };
 
       sizeRef.current = nextSize;
+      setShellSize({ width: nextSize.width, height: nextSize.height });
 
-      const maxX = Math.max(0, nextSize.stageWidth - nextSize.width);
-      const maxY = Math.max(0, nextSize.stageHeight - nextSize.height);
+      const minX = -(nextSize.width - nextSize.effectiveWidth) / 2;
+      const minY = -(nextSize.height - nextSize.effectiveHeight) / 2;
+      const maxX = nextSize.stageWidth - nextSize.width - minX;
+      const maxY = nextSize.stageHeight - nextSize.height - minY;
       const centered = {
-        x: maxX / 2,
-        y: maxY / 2,
+        x: (minX + maxX) / 2,
+        y: (minY + maxY) / 2,
+      };
+
+      const preservedCenter = {
+        x: positionRef.current.x + sizeRef.current.width / 2,
+        y: positionRef.current.y + sizeRef.current.height / 2,
       };
 
       const constrained = {
-        x:
-          positionRef.current.x === 0 && positionRef.current.y === 0
+        x: preserveCenterRef.current
+          ? Math.min(
+              Math.max(preservedCenter.x - nextSize.width / 2, minX),
+              maxX,
+            )
+          : positionRef.current.x === 0 && positionRef.current.y === 0
             ? centered.x
-            : Math.min(Math.max(positionRef.current.x, 0), maxX),
-        y:
-          positionRef.current.x === 0 && positionRef.current.y === 0
+            : Math.min(Math.max(positionRef.current.x, minX), maxX),
+        y: preserveCenterRef.current
+          ? Math.min(
+              Math.max(preservedCenter.y - nextSize.height / 2, minY),
+              maxY,
+            )
+          : positionRef.current.x === 0 && positionRef.current.y === 0
             ? centered.y
-            : Math.min(Math.max(positionRef.current.y, 0), maxY),
+            : Math.min(Math.max(positionRef.current.y, minY), maxY),
       };
+
+      preserveCenterRef.current = false;
 
       positionRef.current = constrained;
       setPosition(constrained);
+
+      if (!readyRef.current) {
+        readyRef.current = true;
+        setIsReady(true);
+      }
     };
 
     updateMeasurements();
@@ -100,8 +152,8 @@ export default function Home() {
       resizeObserver.observe(stageRef.current);
     }
 
-    if (logoRef.current) {
-      resizeObserver.observe(logoRef.current);
+    if (textRef.current) {
+      resizeObserver.observe(textRef.current);
     }
 
     const step = (timestamp: number) => {
@@ -115,23 +167,32 @@ export default function Home() {
       );
       previousTimeRef.current = timestamp;
 
-      const { width, height, stageWidth, stageHeight } = sizeRef.current;
-      const maxX = Math.max(0, stageWidth - width);
-      const maxY = Math.max(0, stageHeight - height);
+      const {
+        width,
+        height,
+        effectiveWidth,
+        effectiveHeight,
+        stageWidth,
+        stageHeight,
+      } = sizeRef.current;
+      const minX = -(width - effectiveWidth) / 2;
+      const minY = -(height - effectiveHeight) / 2;
+      const maxX = stageWidth - width - minX;
+      const maxY = stageHeight - height - minY;
 
       let nextX = positionRef.current.x + velocityRef.current.x * deltaSeconds;
       let nextY = positionRef.current.y + velocityRef.current.y * deltaSeconds;
       let hits = 0;
 
-      if (nextX <= 0 || nextX >= maxX) {
+      if (nextX <= minX || nextX >= maxX) {
         velocityRef.current.x *= -1;
-        nextX = Math.min(Math.max(nextX, 0), maxX);
+        nextX = Math.min(Math.max(nextX, minX), maxX);
         hits += 1;
       }
 
-      if (nextY <= 0 || nextY >= maxY) {
+      if (nextY <= minY || nextY >= maxY) {
         velocityRef.current.y *= -1;
-        nextY = Math.min(Math.max(nextY, 0), maxY);
+        nextY = Math.min(Math.max(nextY, minY), maxY);
         hits += 1;
       }
 
@@ -147,8 +208,21 @@ export default function Home() {
     };
 
     startTimeoutRef.current = window.setTimeout(() => {
-      frameRef.current = window.requestAnimationFrame(step);
-    }, 5_000);
+      setIsShrinking(true);
+      visualShellScaleRef.current = 1;
+      setVisualShellScale(1);
+
+      moveTimeoutRef.current = window.setTimeout(() => {
+        preserveCenterRef.current = true;
+        updateMeasurements();
+
+        frameRef.current = window.requestAnimationFrame(() => {
+          setIsShrinking(false);
+          previousTimeRef.current = null;
+          frameRef.current = window.requestAnimationFrame(step);
+        });
+      }, 1_200);
+    }, 6_000);
 
     return () => {
       resizeObserver.disconnect();
@@ -158,6 +232,10 @@ export default function Home() {
         window.clearTimeout(startTimeoutRef.current);
       }
 
+      if (moveTimeoutRef.current !== null) {
+        window.clearTimeout(moveTimeoutRef.current);
+      }
+
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
       }
@@ -165,20 +243,41 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="dvd-stage" ref={stageRef}>
-      <div
-        className="dvd-logo-shell"
-        ref={logoRef}
-        style={{
-          transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        }}
-      >
-        <h1
-          className={`dvd-logo ${activeFont.fontClassName} ${activeFont.sizeClassName}`}
-        >
-          Kyle Ronning
-        </h1>
+    <main className="home-shell">
+      <div className="home-nav-bar">
+        <div className="page-frame">
+          <SiteNav />
+        </div>
       </div>
+      <section className="home-stage">
+        <div className="dvd-stage" ref={stageRef}>
+          <div
+            className="dvd-logo-shell"
+            ref={logoRef}
+            style={{
+              height: `${shellSize.height}px`,
+              left: `${position.x}px`,
+              top: `${position.y}px`,
+              transform: `scale(${visualShellScale})`,
+              transformOrigin: "center center",
+              transition: isShrinking ? "transform 1200ms ease" : undefined,
+              visibility: isReady ? "visible" : "hidden",
+              width: `${shellSize.width}px`,
+            }}
+          >
+            <h1
+              ref={textRef}
+              className={`dvd-logo ${activeFont.fontClassName} ${activeFont.sizeClassName}`}
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "center center",
+              }}
+            >
+              Kyle Ronning
+            </h1>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

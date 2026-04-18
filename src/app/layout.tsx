@@ -71,7 +71,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexMono.variable} ${spaceMono.variable} ${vt323.variable} ${doto.variable} ${rubikPixels.variable} ${workbench.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="site-root">{children}</body>
     </html>
   );
 }
