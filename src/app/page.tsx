@@ -36,6 +36,7 @@ export default function Home() {
   const velocityRef = useRef({ x: 135, y: 95 });
   const frameRef = useRef<number | null>(null);
   const previousTimeRef = useRef<number | null>(null);
+  const startTimeoutRef = useRef<number | null>(null);
   const sizeRef = useRef({
     width: 0,
     height: 0,
@@ -145,11 +146,17 @@ export default function Home() {
       frameRef.current = window.requestAnimationFrame(step);
     };
 
-    frameRef.current = window.requestAnimationFrame(step);
+    startTimeoutRef.current = window.setTimeout(() => {
+      frameRef.current = window.requestAnimationFrame(step);
+    }, 5_000);
 
     return () => {
       resizeObserver.disconnect();
       previousTimeRef.current = null;
+
+      if (startTimeoutRef.current !== null) {
+        window.clearTimeout(startTimeoutRef.current);
+      }
 
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
