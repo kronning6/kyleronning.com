@@ -1,9 +1,10 @@
 import { PageFrame } from "~/components/page-frame";
+import { RapidLog } from "~/components/rapid-log";
 
 export default function DevlogPage() {
   return (
     <PageFrame title="devlog">
-      <div className="journal-copy">
+      <RapidLog>
         <p>
           This route is a good candidate for a Notion database later, with
           fields like title, slug, publishedAt, status, and summary.
@@ -12,7 +13,7 @@ export default function DevlogPage() {
           Right now it&apos;s a placeholder shell so the information
           architecture is in place before the Notion content layer lands.
         </p>
-      </div>
+      </RapidLog>
     </PageFrame>
   );
 }

@@ -71,7 +71,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexMono.variable} ${spaceMono.variable} ${vt323.variable} ${doto.variable} ${rubikPixels.variable} ${workbench.variable} h-full antialiased`}
     >
-      <body className="site-root">{children}</body>
+      <body className="min-h-screen bg-background font-sans text-foreground">
+        {children}
+      </body>
     </html>
   );
 }

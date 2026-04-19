@@ -1,34 +1,38 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BouncingWordmark } from "~/components/bouncing-wordmark";
+import { PageContainer } from "~/components/page-container";
 import { SiteNav } from "~/components/site-nav";
 
 const FONT_OPTIONS = [
   {
-    fontClassName: "[font-family:var(--font-ibm-plex-mono)]",
-    sizeClassName: "dvd-logo-standard",
+    fontClassName:
+      "[font-family:var(--font-ibm-plex-mono)] text-[clamp(2.2rem,8vw,5.5rem)] pb-[0.08em]",
   },
   {
-    fontClassName: "[font-family:var(--font-vt323)]",
-    sizeClassName: "dvd-logo-vt323",
+    fontClassName:
+      "[font-family:var(--font-vt323)] text-[clamp(2.6rem,9.4vw,6.75rem)]",
   },
   {
-    fontClassName: "[font-family:var(--font-doto)]",
-    sizeClassName: "dvd-logo-standard",
+    fontClassName:
+      "[font-family:var(--font-doto)] text-[clamp(2.2rem,8vw,5.5rem)]",
   },
   {
-    fontClassName: "[font-family:var(--font-space-mono)]",
-    sizeClassName: "dvd-logo-standard",
+    fontClassName:
+      "[font-family:var(--font-space-mono)] text-[clamp(2.2rem,8vw,5.5rem)] pb-[0.08em]",
   },
   {
-    fontClassName: "[font-family:var(--font-rubik-pixels)]",
-    sizeClassName: "dvd-logo-standard",
+    fontClassName:
+      "[font-family:var(--font-rubik-pixels)] text-[clamp(2.2rem,8vw,5.5rem)]",
   },
   {
-    fontClassName: "[font-family:var(--font-workbench)]",
-    sizeClassName: "dvd-logo-standard",
+    fontClassName:
+      "[font-family:var(--font-workbench)] text-[clamp(2.2rem,8vw,5.5rem)]",
   },
 ];
+
+const WORDMARK_HEIGHT_BUFFER = 8;
 
 export default function Home() {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -74,7 +78,7 @@ export default function Home() {
 
       const stageRect = stage.getBoundingClientRect();
       const naturalWidth = text.offsetWidth;
-      const naturalHeight = text.offsetHeight;
+      const naturalHeight = text.offsetHeight + WORDMARK_HEIGHT_BUFFER;
       const targetWidth = Math.max(0, Math.min(300, stageRect.width - 48));
       const fitScale = naturalWidth > 0 ? targetWidth / naturalWidth : 1;
 
@@ -243,39 +247,28 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="home-shell">
-      <div className="home-nav-bar">
-        <div className="page-frame">
+    <main className="relative min-h-screen">
+      <div className="absolute inset-x-0 top-0 z-10 px-6 pt-12 max-md:p-5 max-md:pt-5">
+        <PageContainer>
           <SiteNav />
-        </div>
+        </PageContainer>
       </div>
-      <section className="home-stage">
-        <div className="dvd-stage" ref={stageRef}>
-          <div
-            className="dvd-logo-shell"
-            ref={logoRef}
-            style={{
-              height: `${shellSize.height}px`,
-              left: `${position.x}px`,
-              top: `${position.y}px`,
-              transform: `scale(${visualShellScale})`,
-              transformOrigin: "center center",
-              transition: isShrinking ? "transform 1200ms ease" : undefined,
-              visibility: isReady ? "visible" : "hidden",
-              width: `${shellSize.width}px`,
-            }}
-          >
-            <h1
-              ref={textRef}
-              className={`dvd-logo ${activeFont.fontClassName} ${activeFont.sizeClassName}`}
-              style={{
-                transform: `scale(${scale})`,
-                transformOrigin: "center center",
-              }}
-            >
-              Kyle Ronning
-            </h1>
-          </div>
+      <section className="h-screen w-screen">
+        <div
+          className="relative h-full w-full overflow-hidden motion-reduce:flex motion-reduce:items-center motion-reduce:justify-center"
+          ref={stageRef}
+        >
+          <BouncingWordmark
+            fontClassName={activeFont.fontClassName}
+            isReady={isReady}
+            isShrinking={isShrinking}
+            position={position}
+            scale={scale}
+            shellSize={shellSize}
+            textRef={textRef}
+            visualShellScale={visualShellScale}
+            wordmarkRef={logoRef}
+          />
         </div>
       </section>
     </main>
