@@ -1,9 +1,11 @@
+/* biome-ignore-all lint/security/noDangerouslySetInnerHtml: Shiki generates highlighted HTML server-side from code text. */
 import type {
   BlockObjectResponse,
   PageIconResponse,
   RichTextItemResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 import type { ReactNode } from "react";
+import { highlightCodeBlock } from "~/lib/code-highlighting";
 import type { NotionBlockNode } from "~/lib/notion";
 
 type ListItemBlock = Extract<
@@ -65,12 +67,12 @@ function NotionRichText({ richText }: NotionRichTextProps) {
   });
 }
 
-function renderNestedChildren(children: NotionBlockNode[]) {
+async function renderNestedChildren(children: NotionBlockNode[]) {
   if (children.length === 0) {
     return null;
   }
 
-  return <div className="mt-3">{renderBlockNodes(children)}</div>;
+  return <div className="mt-3">{await renderBlockNodes(children)}</div>;
 }
 
 function renderAlignedMarker(content: ReactNode, className = "") {
@@ -125,7 +127,7 @@ function renderToDoMarker(block: ToDoBlock) {
   );
 }
 
-function renderListItem(node: ListItemNode, index: number) {
+async function renderListItem(node: ListItemNode, index: number) {
   const richText =
     node.block.type === "bulleted_list_item"
       ? node.block.bulleted_list_item.rich_text
@@ -142,7 +144,7 @@ function renderListItem(node: ListItemNode, index: number) {
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={richText} />
           </div>
-          {renderNestedChildren(node.children)}
+          {await renderNestedChildren(node.children)}
         </div>
       </li>
     );
@@ -161,13 +163,13 @@ function renderListItem(node: ListItemNode, index: number) {
       )}
       <div className="whitespace-pre-wrap">
         <NotionRichText richText={richText} />
-        {renderNestedChildren(node.children)}
+        {await renderNestedChildren(node.children)}
       </div>
     </li>
   );
 }
 
-function renderSimpleBlock(
+async function renderSimpleBlock(
   node: NotionBlockNode,
   className: string,
   richText: RichTextItemResponse[],
@@ -175,7 +177,7 @@ function renderSimpleBlock(
   return (
     <div key={node.block.id} className={className}>
       <NotionRichText richText={richText} />
-      {renderNestedChildren(node.children)}
+      {await renderNestedChildren(node.children)}
     </div>
   );
 }
@@ -217,7 +219,7 @@ function ToggleSummary({ className = "", children }: ToggleSummaryProps) {
   );
 }
 
-function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
+async function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
   const heading = getHeadingContent(block);
   const className =
     block.type === "heading_1"
@@ -238,7 +240,7 @@ function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
         <NotionRichText richText={heading.rich_text} />
       </ToggleSummary>
       {node.children.length > 0 ? (
-        <div className="pl-5">{renderBlockNodes(node.children)}</div>
+        <div className="pl-5">{await renderBlockNodes(node.children)}</div>
       ) : null}
     </details>
   );
@@ -302,7 +304,7 @@ function getBlockDebugSummary(block: BlockObjectResponse) {
   }
 }
 
-function renderUnsupportedBlock(node: NotionBlockNode) {
+async function renderUnsupportedBlock(node: NotionBlockNode) {
   const summary = getBlockDebugSummary(node.block);
 
   return (
@@ -331,13 +333,13 @@ function renderUnsupportedBlock(node: NotionBlockNode) {
         <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words rounded border border-current/15 p-2 text-xs leading-5">
           {JSON.stringify(node.block, null, 2)}
         </pre>
-        {renderNestedChildren(node.children)}
+        {await renderNestedChildren(node.children)}
       </div>
     </details>
   );
 }
 
-function renderBlockNode(node: NotionBlockNode): ReactNode {
+async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
   const block = node.block;
 
   switch (block.type) {
@@ -369,7 +371,7 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={block.quote.rich_text} />
           </div>
-          {renderNestedChildren(node.children)}
+          {await renderNestedChildren(node.children)}
         </blockquote>
       );
 
@@ -384,7 +386,7 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
           </span>
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={block.callout.rich_text} />
-            {renderNestedChildren(node.children)}
+            {await renderNestedChildren(node.children)}
           </div>
         </div>
       );
@@ -395,7 +397,7 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
           {renderToDoMarker(block)}
           <div className="min-w-0 whitespace-pre-wrap">
             <NotionRichText richText={block.to_do.rich_text} />
-            {renderNestedChildren(node.children)}
+            {await renderNestedChildren(node.children)}
           </div>
         </div>
       );
@@ -408,19 +410,32 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
             <NotionRichText richText={block.toggle.rich_text} />
           </ToggleSummary>
           {node.children.length > 0 ? (
-            <div className="pl-5">{renderBlockNodes(node.children)}</div>
+            <div className="pl-5">{await renderBlockNodes(node.children)}</div>
           ) : null}
         </details>
       );
 
-    case "code":
+    case "code": {
+      const highlightedCode = await highlightCodeBlock(
+        getPlainText(block.code.rich_text),
+        block.code.language,
+      );
+
       return (
         <figure key={block.id} className="m-0 grid gap-2">
-          <pre className="m-0 overflow-x-auto rounded border border-current/20 bg-black/5 p-4 text-sm leading-6 dark:bg-white/5">
-            <code>
-              <NotionRichText richText={block.code.rich_text} />
-            </code>
-          </pre>
+          <div
+            className="[&_code]:grid [&_pre]:m-0 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:border [&_pre]:border-current/20 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm [&_pre]:leading-6 [&_.line]:block"
+            dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          />
+          <style>{`
+            @media (prefers-color-scheme: dark) {
+              .shiki.shiki-themes,
+              .shiki.shiki-themes span {
+                color: var(--shiki-dark) !important;
+                background-color: var(--shiki-dark-bg) !important;
+              }
+            }
+          `}</style>
           {block.code.caption.length > 0 ? (
             <figcaption className="text-sm opacity-70">
               <NotionRichText richText={block.code.caption} />
@@ -428,6 +443,7 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
           ) : null}
         </figure>
       );
+    }
 
     case "divider":
       return <hr key={block.id} className="border-current/20" />;
@@ -478,11 +494,11 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
     }
 
     default:
-      return renderUnsupportedBlock(node);
+      return await renderUnsupportedBlock(node);
   }
 }
 
-function renderBlockNodes(nodes: NotionBlockNode[]) {
+async function renderBlockNodes(nodes: NotionBlockNode[]) {
   const elements: ReactNode[] = [];
 
   for (let index = 0; index < nodes.length; index += 1) {
@@ -511,15 +527,23 @@ function renderBlockNodes(nodes: NotionBlockNode[]) {
       elements.push(
         listType === "bulleted_list_item" ? (
           <ul key={node.block.id} className="m-0 grid gap-2 list-none pl-0">
-            {listItems.map((item, itemIndex) =>
-              renderListItem(item as ListItemNode, itemIndex),
-            )}
+            {
+              await Promise.all(
+                listItems.map((item, itemIndex) =>
+                  renderListItem(item as ListItemNode, itemIndex),
+                ),
+              )
+            }
           </ul>
         ) : (
           <ol key={node.block.id} className="m-0 grid gap-2 list-none pl-0">
-            {listItems.map((item, itemIndex) =>
-              renderListItem(item as ListItemNode, itemIndex),
-            )}
+            {
+              await Promise.all(
+                listItems.map((item, itemIndex) =>
+                  renderListItem(item as ListItemNode, itemIndex),
+                ),
+              )
+            }
           </ol>
         ),
       );
@@ -527,7 +551,7 @@ function renderBlockNodes(nodes: NotionBlockNode[]) {
       continue;
     }
 
-    elements.push(renderBlockNode(node));
+    elements.push(await renderBlockNode(node));
   }
 
   return <div className="grid gap-4">{elements}</div>;
@@ -537,6 +561,6 @@ type NotionBlocksProps = {
   blocks: NotionBlockNode[];
 };
 
-export function NotionBlocks({ blocks }: NotionBlocksProps) {
+export async function NotionBlocks({ blocks }: NotionBlocksProps) {
   return renderBlockNodes(blocks);
 }
