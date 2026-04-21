@@ -13,7 +13,7 @@ export function PageFrame({ title, children }: PageFrameProps) {
       <PageContainer>
         <SiteNav />
         <section className="grid gap-6">
-          <h1 className="m-0 text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.1] font-normal lowercase">
+          <h1 className="m-0 text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.1] font-normal">
             {title}
           </h1>
           {children}

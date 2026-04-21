@@ -17,7 +17,6 @@ import { Data } from "effect";
 import { cacheLife } from "next/cache";
 import { env } from "~/env/server";
 
-const PAGE_SIZE_DEVLOG = 5;
 const NOTION_DATE_PROPERTY = "Date";
 const NOTION_STATUS_PROPERTY = "Status";
 
@@ -297,34 +296,41 @@ async function queryAllDataSourceEntries(dataSourceId: string) {
     },
   );
 
-  return results.filter(isFullPage);
+  return results
+    .filter(isFullPage)
+    .filter((page) => getPageDate(page) !== null);
 }
 
-export async function getDevlogEntries(pageNumber: number) {
+export async function getDevlogEntries() {
   "use cache";
   cacheLife("notion");
 
   const devlogDataSource = await getDevlogDataSource();
   const entries = await queryAllDataSourceEntries(devlogDataSource.id);
-  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE_DEVLOG));
-  const currentPage = Math.min(Math.max(pageNumber, 1), totalPages);
-  const pagedEntries = entries.slice(
-    (currentPage - 1) * PAGE_SIZE_DEVLOG,
-    currentPage * PAGE_SIZE_DEVLOG,
-  );
-
-  const entriesWithBlocks = await Promise.all(
-    pagedEntries.map(async (entry) => ({
-      ...normalizeEntry(entry),
-      blocks: await getPageBlocks(entry.id),
-    })),
-  );
 
   return {
-    entries: entriesWithBlocks,
-    currentPage,
-    totalPages,
+    entries: entries.map(normalizeEntry),
   };
+}
+
+export async function getDevlogBySlug(slug: string) {
+  "use cache";
+  cacheLife("notion");
+
+  const devlogDataSource = await getDevlogDataSource();
+  const entries = await queryAllDataSourceEntries(devlogDataSource.id);
+  const entry = entries.find(
+    (candidate) => normalizeEntry(candidate).slug === slug,
+  );
+
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    ...normalizeEntry(entry),
+    blocks: await getPageBlocks(entry.id),
+  } satisfies NotionEntryWithBlocks;
 }
 
 export async function getPostEntries() {

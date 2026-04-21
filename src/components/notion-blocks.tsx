@@ -1,5 +1,6 @@
 import type {
   BlockObjectResponse,
+  PageIconResponse,
   RichTextItemResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 import type { ReactNode } from "react";
@@ -72,40 +73,59 @@ function renderNestedChildren(children: NotionBlockNode[]) {
   return <div className="mt-3">{renderBlockNodes(children)}</div>;
 }
 
-function hasFullStrikethrough(richText: RichTextItemResponse[]) {
-  const visibleItems = richText.filter(
-    (item) => item.plain_text.trim().length > 0,
-  );
-
-  return (
-    visibleItems.length > 0 &&
-    visibleItems.every((item) => item.annotations.strikethrough)
-  );
-}
-
-function renderToDoMarker(block: ToDoBlock) {
-  const isStruckThrough = hasFullStrikethrough(block.to_do.rich_text);
-
+function renderAlignedMarker(content: ReactNode, className = "") {
   return (
     <span
       aria-hidden="true"
-      className="relative mt-1 inline-flex size-3 shrink-0 items-center justify-center"
+      className={`relative mt-[0.78em] inline-flex h-0 w-5 shrink-0 -translate-y-1/2 items-center justify-center ${className}`}
     >
-      <span className="size-1.5 rounded-full bg-current/75" />
+      {content}
+    </span>
+  );
+}
+
+function getPlainText(richText: RichTextItemResponse[]) {
+  return richText.map((item) => item.plain_text).join("");
+}
+
+function renderCalloutIcon(icon: PageIconResponse | null) {
+  if (!icon) {
+    return null;
+  }
+
+  if (icon.type === "emoji") {
+    return icon.emoji;
+  }
+
+  if (icon.type === "custom_emoji") {
+    return (
+      // biome-ignore lint/performance/noImgElement: Notion custom emoji icons are tiny remote assets.
+      <img
+        src={icon.custom_emoji.url}
+        alt={icon.custom_emoji.name}
+        className="size-5"
+      />
+    );
+  }
+
+  return null;
+}
+
+function renderToDoMarker(block: ToDoBlock) {
+  return renderAlignedMarker(
+    <>
+      <span className="size-1 rounded-full bg-current/75" />
       {block.to_do.checked ? (
         <>
           <span className="absolute h-px w-3 rotate-45 bg-current" />
           <span className="absolute h-px w-3 -rotate-45 bg-current" />
         </>
       ) : null}
-      {isStruckThrough ? (
-        <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-current" />
-      ) : null}
-    </span>
+    </>,
   );
 }
 
-function renderListItem(node: ListItemNode) {
+function renderListItem(node: ListItemNode, index: number) {
   const richText =
     node.block.type === "bulleted_list_item"
       ? node.block.bulleted_list_item.rich_text
@@ -115,11 +135,9 @@ function renderListItem(node: ListItemNode) {
     return (
       <li
         key={node.block.id}
-        className="grid grid-cols-[auto_1fr] items-start gap-2"
+        className="grid grid-cols-[auto_1fr] items-start gap-3"
       >
-        <span aria-hidden="true" className="pt-0.5 opacity-70">
-          -
-        </span>
+        {renderAlignedMarker(<span className="h-px w-2 bg-current/75" />)}
         <div>
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={richText} />
@@ -131,11 +149,20 @@ function renderListItem(node: ListItemNode) {
   }
 
   return (
-    <li key={node.block.id} className="pl-1">
+    <li
+      key={node.block.id}
+      className="grid grid-cols-[auto_1fr] items-start gap-2"
+    >
+      {renderAlignedMarker(
+        <span className="w-5 text-right font-mono tabular-nums opacity-80">
+          {index + 1}.
+        </span>,
+        "w-6 justify-end",
+      )}
       <div className="whitespace-pre-wrap">
         <NotionRichText richText={richText} />
+        {renderNestedChildren(node.children)}
       </div>
-      {renderNestedChildren(node.children)}
     </li>
   );
 }
@@ -153,8 +180,45 @@ function renderSimpleBlock(
   );
 }
 
+function getHeadingContent(block: HeadingBlock) {
+  switch (block.type) {
+    case "heading_1":
+      return block.heading_1;
+    case "heading_2":
+      return block.heading_2;
+    case "heading_3":
+      return block.heading_3;
+    case "heading_4":
+      return block.heading_4;
+  }
+}
+
+type ToggleSummaryProps = {
+  className?: string;
+  children: ReactNode;
+};
+
+function ToggleSummary({ className = "", children }: ToggleSummaryProps) {
+  return (
+    <summary
+      className={[
+        "group flex cursor-pointer list-none items-baseline gap-2.5 [&::-webkit-details-marker]:hidden",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <span
+        aria-hidden="true"
+        className="mt-[0.18em] inline-block h-2 w-2 shrink-0 rotate-[-45deg] border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:rotate-45"
+      />
+      <span>{children}</span>
+    </summary>
+  );
+}
+
 function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
-  const heading = block[block.type];
+  const heading = getHeadingContent(block);
   const className =
     block.type === "heading_1"
       ? "m-0 text-3xl leading-tight font-normal"
@@ -170,9 +234,9 @@ function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
 
   return (
     <details key={block.id} className="grid gap-3">
-      <summary className={`cursor-pointer ${className}`}>
+      <ToggleSummary className={className}>
         <NotionRichText richText={heading.rich_text} />
-      </summary>
+      </ToggleSummary>
       {node.children.length > 0 ? (
         <div className="pl-5">{renderBlockNodes(node.children)}</div>
       ) : null}
@@ -184,46 +248,44 @@ function getBlockDebugSummary(block: BlockObjectResponse) {
   switch (block.type) {
     case "paragraph":
       return {
-        text: block.paragraph.rich_text.map((item) => item.plain_text).join(""),
+        text: getPlainText(block.paragraph.rich_text),
       };
     case "heading_1":
     case "heading_2":
     case "heading_3":
-    case "heading_4":
+    case "heading_4": {
+      const heading = getHeadingContent(block);
+
       return {
-        text: block[block.type].rich_text
-          .map((item) => item.plain_text)
-          .join(""),
-        isToggleable: block[block.type].is_toggleable,
+        text: getPlainText(heading.rich_text),
+        isToggleable: heading.is_toggleable,
       };
+    }
     case "toggle":
       return {
-        text: block.toggle.rich_text.map((item) => item.plain_text).join(""),
+        text: getPlainText(block.toggle.rich_text),
       };
     case "to_do":
       return {
-        text: block.to_do.rich_text.map((item) => item.plain_text).join(""),
+        text: getPlainText(block.to_do.rich_text),
         checked: block.to_do.checked,
       };
     case "bulleted_list_item":
       return {
-        text: block.bulleted_list_item.rich_text
-          .map((item) => item.plain_text)
-          .join(""),
+        text: getPlainText(block.bulleted_list_item.rich_text),
       };
     case "numbered_list_item":
       return {
-        text: block.numbered_list_item.rich_text
-          .map((item) => item.plain_text)
-          .join(""),
+        text: getPlainText(block.numbered_list_item.rich_text),
       };
     case "quote":
       return {
-        text: block.quote.rich_text.map((item) => item.plain_text).join(""),
+        text: getPlainText(block.quote.rich_text),
       };
     case "callout":
       return {
-        text: block.callout.rich_text.map((item) => item.plain_text).join(""),
+        text: getPlainText(block.callout.rich_text),
+        icon: block.callout.icon?.type ?? null,
       };
     case "bookmark":
       return { url: block.bookmark.url };
@@ -233,7 +295,7 @@ function getBlockDebugSummary(block: BlockObjectResponse) {
           block.image.type === "external"
             ? block.image.external.url
             : block.image.file.url,
-        caption: block.image.caption.map((item) => item.plain_text).join(""),
+        caption: getPlainText(block.image.caption),
       };
     default:
       return null;
@@ -315,16 +377,19 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
       return (
         <div
           key={block.id}
-          className="rounded border border-current/20 px-4 py-3"
+          className="grid grid-cols-[auto_1fr] items-start gap-3 rounded border border-current/20 px-4 py-3"
         >
+          <span className="pt-0.5 text-lg leading-none">
+            {renderCalloutIcon(block.callout.icon)}
+          </span>
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={block.callout.rich_text} />
+            {renderNestedChildren(node.children)}
           </div>
-          {renderNestedChildren(node.children)}
         </div>
       );
 
-    case "to_do":
+    case "to_do": {
       return (
         <div key={block.id} className="flex items-start gap-3">
           {renderToDoMarker(block)}
@@ -334,13 +399,14 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
           </div>
         </div>
       );
+    }
 
     case "toggle":
       return (
         <details key={block.id} className="grid gap-3">
-          <summary className="cursor-pointer whitespace-pre-wrap">
+          <ToggleSummary className="whitespace-pre-wrap">
             <NotionRichText richText={block.toggle.rich_text} />
-          </summary>
+          </ToggleSummary>
           {node.children.length > 0 ? (
             <div className="pl-5">{renderBlockNodes(node.children)}</div>
           ) : null}
@@ -349,14 +415,18 @@ function renderBlockNode(node: NotionBlockNode): ReactNode {
 
     case "code":
       return (
-        <pre
-          key={block.id}
-          className="m-0 overflow-x-auto rounded border border-current/20 bg-black/5 p-4 text-sm leading-6 dark:bg-white/5"
-        >
-          <code>
-            <NotionRichText richText={block.code.rich_text} />
-          </code>
-        </pre>
+        <figure key={block.id} className="m-0 grid gap-2">
+          <pre className="m-0 overflow-x-auto rounded border border-current/20 bg-black/5 p-4 text-sm leading-6 dark:bg-white/5">
+            <code>
+              <NotionRichText richText={block.code.rich_text} />
+            </code>
+          </pre>
+          {block.code.caption.length > 0 ? (
+            <figcaption className="text-sm opacity-70">
+              <NotionRichText richText={block.code.caption} />
+            </figcaption>
+          ) : null}
+        </figure>
       );
 
     case "divider":
@@ -441,11 +511,15 @@ function renderBlockNodes(nodes: NotionBlockNode[]) {
       elements.push(
         listType === "bulleted_list_item" ? (
           <ul key={node.block.id} className="m-0 grid gap-2 list-none pl-0">
-            {listItems.map((item) => renderListItem(item as ListItemNode))}
+            {listItems.map((item, itemIndex) =>
+              renderListItem(item as ListItemNode, itemIndex),
+            )}
           </ul>
         ) : (
-          <ol key={node.block.id} className="m-0 grid gap-2 pl-5 list-decimal">
-            {listItems.map((item) => renderListItem(item as ListItemNode))}
+          <ol key={node.block.id} className="m-0 grid gap-2 list-none pl-0">
+            {listItems.map((item, itemIndex) =>
+              renderListItem(item as ListItemNode, itemIndex),
+            )}
           </ol>
         ),
       );
