@@ -428,6 +428,10 @@ async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
           />
           <style>{`
+            .shiki .line:empty::before {
+              content: "\u200B";
+            }
+
             @media (prefers-color-scheme: dark) {
               .shiki.shiki-themes,
               .shiki.shiki-themes span {
