@@ -9,24 +9,7 @@ import {
   MissingNotionTokenError,
   MissingNotionWebsitePageIdError,
 } from "~/lib/notion";
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
+import { formatDate } from "~/lib/utils";
 
 async function DevlogEntryPageContent({
   params,
