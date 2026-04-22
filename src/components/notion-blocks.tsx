@@ -366,7 +366,7 @@ async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
       return (
         <blockquote
           key={block.id}
-          className="m-0 border-l border-current/30 pl-4 italic"
+          className="m-0 border-l-2 border-black pl-4 italic"
         >
           <div className="whitespace-pre-wrap">
             <NotionRichText richText={block.quote.rich_text} />
@@ -379,7 +379,7 @@ async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
       return (
         <div
           key={block.id}
-          className="grid grid-cols-[auto_1fr] items-start gap-3 rounded border border-current/20 px-4 py-3"
+          className="grid grid-cols-[auto_1fr] items-start gap-3 rounded border border-current/5 bg-current/5 px-4 py-3"
         >
           <span className="pt-0.5 text-lg leading-none">
             {renderCalloutIcon(block.callout.icon)}
