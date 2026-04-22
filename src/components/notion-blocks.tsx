@@ -204,7 +204,7 @@ function ToggleSummary({ className = "", children }: ToggleSummaryProps) {
   return (
     <summary
       className={[
-        "group flex cursor-pointer list-none items-baseline gap-2.5 [&::-webkit-details-marker]:hidden",
+        "flex cursor-pointer list-none items-baseline gap-2.5 [&::-webkit-details-marker]:hidden",
         className,
       ]
         .filter(Boolean)
@@ -212,7 +212,7 @@ function ToggleSummary({ className = "", children }: ToggleSummaryProps) {
     >
       <span
         aria-hidden="true"
-        className="mt-[0.18em] inline-block h-2 w-2 shrink-0 rotate-[-45deg] border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:rotate-45"
+        className="mt-[0.18em] inline-block h-2 w-2 shrink-0 rotate-[-45deg] border-r-[1.5px] border-b-[1.5px] border-current transition-transform group-open:rotate-[45deg]"
       />
       <span>{children}</span>
     </summary>
@@ -235,7 +235,7 @@ async function renderHeadingBlock(node: NotionBlockNode, block: HeadingBlock) {
   }
 
   return (
-    <details key={block.id} className="grid gap-3">
+    <details key={block.id} className="group grid gap-3">
       <ToggleSummary className={className}>
         <NotionRichText richText={heading.rich_text} />
       </ToggleSummary>
@@ -405,7 +405,7 @@ async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
 
     case "toggle":
       return (
-        <details key={block.id} className="grid gap-3">
+        <details key={block.id} className="group grid gap-3">
           <ToggleSummary className="whitespace-pre-wrap">
             <NotionRichText richText={block.toggle.rich_text} />
           </ToggleSummary>
