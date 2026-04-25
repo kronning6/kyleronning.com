@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { cacheLife } from "next/cache";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { NotionBlocks } from "~/components/notion-blocks";
@@ -39,6 +40,13 @@ async function PostPageContent({
   params: PageProps<"/posts/[slug]">["params"];
 }) {
   const { slug } = await params;
+
+  return renderPostPage(slug);
+}
+
+async function renderPostPage(slug: string) {
+  "use cache";
+  cacheLife("notion");
 
   return Effect.runPromise(
     Effect.match(

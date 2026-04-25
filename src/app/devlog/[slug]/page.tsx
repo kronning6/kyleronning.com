@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import { cacheLife } from "next/cache";
 import { notFound, unstable_rethrow } from "next/navigation";
 import { Suspense } from "react";
 import { NotionBlocks } from "~/components/notion-blocks";
@@ -39,40 +41,58 @@ async function DevlogEntryPageContent({
 }) {
   const { slug } = await params;
 
-  try {
-    const entry = await getDevlogBySlug(slug);
+  return renderDevlogEntryPage(slug);
+}
 
-    if (!entry) {
-      notFound();
-    }
+async function renderDevlogEntryPage(slug: string) {
+  "use cache";
+  cacheLife("notion");
 
-    return (
-      <PageFrame title={entry.title}>
-        {entry.date ? (
-          <p className="m-0 text-sm opacity-70">{formatDate(entry.date)}</p>
-        ) : null}
-        <NotionBlocks blocks={entry.blocks} />
-      </PageFrame>
-    );
-  } catch (error) {
-    unstable_rethrow(error);
+  return Effect.runPromise(
+    Effect.match(
+      Effect.tryPromise({
+        try: async () => {
+          const entry = await getDevlogBySlug(slug);
 
-    return (
-      <PageFrame title="devlog">
-        <RapidLog>
-          <p>
-            {error instanceof InvalidNotionRequestError ||
-            error instanceof MissingNotionTokenError ||
-            error instanceof MissingNotionWebsitePageIdError
-              ? error.message
-              : error instanceof Error
-                ? error.message
-                : "Failed to load the devlog entry."}
-          </p>
-        </RapidLog>
-      </PageFrame>
-    );
-  }
+          if (!entry) {
+            notFound();
+          }
+
+          return entry;
+        },
+        catch: (cause) => cause,
+      }),
+      {
+        onSuccess: (entry) => (
+          <PageFrame title={entry.title}>
+            {entry.date ? (
+              <p className="m-0 text-sm opacity-70">{formatDate(entry.date)}</p>
+            ) : null}
+            <NotionBlocks blocks={entry.blocks} />
+          </PageFrame>
+        ),
+        onFailure: (error) => {
+          unstable_rethrow(error);
+
+          return (
+            <PageFrame title="devlog">
+              <RapidLog>
+                <p>
+                  {error instanceof InvalidNotionRequestError ||
+                  error instanceof MissingNotionTokenError ||
+                  error instanceof MissingNotionWebsitePageIdError
+                    ? error.message
+                    : error instanceof Error
+                      ? error.message
+                      : "Failed to load the devlog entry."}
+                </p>
+              </RapidLog>
+            </PageFrame>
+          );
+        },
+      },
+    ),
+  );
 }
 
 export default function DevlogEntryPage(props: PageProps<"/devlog/[slug]">) {
