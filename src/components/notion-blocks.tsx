@@ -52,7 +52,12 @@ function NotionRichText({ richText }: NotionRichTextProps) {
       .join(" ");
 
     const content = item.href ? (
-      <a href={item.href} className="underline underline-offset-2">
+      <a
+        href={item.href}
+        className="underline underline-offset-2"
+        target="_blank"
+        rel="noreferrer"
+      >
         {item.plain_text}
       </a>
     ) : (
@@ -481,6 +486,8 @@ async function renderBlockNode(node: NotionBlockNode): Promise<ReactNode> {
           key={block.id}
           href={block.bookmark.url}
           className="underline underline-offset-2"
+          target="_blank"
+          rel="noreferrer"
         >
           {block.bookmark.url}
         </a>
