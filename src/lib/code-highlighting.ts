@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cacheLife } from "next/cache";
 import { codeToHtml } from "shiki";
 
 const SHIKI_THEMES = {
@@ -23,20 +23,21 @@ function normalizeLanguage(language: string) {
   return NOTION_LANGUAGE_ALIASES[normalized] ?? normalized;
 }
 
-export const highlightCodeBlock = cache(
-  async (code: string, language: string) => {
-    const normalizedLanguage = normalizeLanguage(language);
+export async function highlightCodeBlock(code: string, language: string) {
+  "use cache";
+  cacheLife("max");
 
-    try {
-      return await codeToHtml(code, {
-        lang: normalizedLanguage,
-        themes: SHIKI_THEMES,
-      });
-    } catch {
-      return codeToHtml(code, {
-        lang: "text",
-        themes: SHIKI_THEMES,
-      });
-    }
-  },
-);
+  const normalizedLanguage = normalizeLanguage(language);
+
+  try {
+    return await codeToHtml(code, {
+      lang: normalizedLanguage,
+      themes: SHIKI_THEMES,
+    });
+  } catch {
+    return codeToHtml(code, {
+      lang: "text",
+      themes: SHIKI_THEMES,
+    });
+  }
+}
