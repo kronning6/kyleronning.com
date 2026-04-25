@@ -5,11 +5,32 @@ import { PageFrame } from "~/components/page-frame";
 import { RapidLog } from "~/components/rapid-log";
 import {
   getDevlogBySlug,
+  getDevlogEntries,
   InvalidNotionRequestError,
   MissingNotionTokenError,
   MissingNotionWebsitePageIdError,
 } from "~/lib/notion";
 import { formatDate } from "~/lib/utils";
+
+export async function generateStaticParams() {
+  try {
+    const { entries } = await getDevlogEntries();
+
+    return entries.map((entry) => ({
+      slug: entry.slug,
+    }));
+  } catch (error) {
+    if (
+      error instanceof InvalidNotionRequestError ||
+      error instanceof MissingNotionTokenError ||
+      error instanceof MissingNotionWebsitePageIdError
+    ) {
+      return [];
+    }
+
+    throw error;
+  }
+}
 
 async function DevlogEntryPageContent({
   params,

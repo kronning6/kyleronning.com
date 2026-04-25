@@ -5,9 +5,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   cacheLife: {
     notion: {
-      stale: 30,
-      revalidate: 30,
-      expire: 300,
+      stale: 60 * 60 * 24 * 30,
+      revalidate: 60 * 60 * 24 * 365,
+      expire: 60 * 60 * 24 * 365 * 2,
     },
   },
   reactCompiler: true,
