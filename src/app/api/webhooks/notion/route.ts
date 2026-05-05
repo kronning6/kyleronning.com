@@ -110,10 +110,7 @@ export async function POST(request: Request) {
   }
 
   if (isVerificationPayload(payload)) {
-    console.info(
-      "Notion webhook verification token:",
-      payload.verification_token,
-    );
+    console.info("Notion webhook verification token received.");
 
     return NextResponse.json({ message: "Verification token received." });
   }
@@ -151,6 +148,19 @@ export async function POST(request: Request) {
   }
 
   const deployHookResult = await triggerVercelDeployHook();
+
+  if (deployHookResult.ok) {
+    console.info("Vercel deploy hook triggered from Notion webhook.", {
+      eventId: payload.id,
+      eventType: payload.type,
+    });
+  } else {
+    console.error("Vercel deploy hook request failed.", {
+      eventId: payload.id,
+      eventType: payload.type,
+      status: deployHookResult.status,
+    });
+  }
 
   return NextResponse.json(
     {
