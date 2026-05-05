@@ -110,6 +110,36 @@ function normalizeEntry(page: PageObjectResponse): NotionEntry {
   };
 }
 
+function ensureUniqueSlugs(entries: NotionEntry[], collectionName: string) {
+  const entriesBySlug = new Map<string, NotionEntry[]>();
+
+  for (const entry of entries) {
+    entriesBySlug.set(entry.slug, [
+      ...(entriesBySlug.get(entry.slug) ?? []),
+      entry,
+    ]);
+  }
+
+  const duplicates = [...entriesBySlug.entries()].filter(
+    ([, matchingEntries]) => matchingEntries.length > 1,
+  );
+
+  if (duplicates.length === 0) {
+    return;
+  }
+
+  const duplicateSummary = duplicates
+    .map(
+      ([slug, matchingEntries]) =>
+        `${slug}: ${matchingEntries.map((entry) => entry.title).join(", ")}`,
+    )
+    .join("; ");
+
+  throw new Error(
+    `Duplicate ${collectionName} slugs found. Update the Notion titles to produce unique URLs. ${duplicateSummary}`,
+  );
+}
+
 function hasPageParent(
   value: { parent: PageObjectResponse["parent"] },
   pageId: string,
@@ -307,9 +337,12 @@ export async function getDevlogEntries() {
 
   const devlogDataSource = await getDevlogDataSource();
   const entries = await queryAllDataSourceEntries(devlogDataSource.id);
+  const normalizedEntries = entries.map(normalizeEntry);
+
+  ensureUniqueSlugs(normalizedEntries, "devlog");
 
   return {
-    entries: entries.map(normalizeEntry),
+    entries: normalizedEntries,
   };
 }
 
@@ -339,9 +372,12 @@ export async function getPostEntries() {
 
   const postsDataSource = await getPostsDataSource();
   const entries = await queryAllDataSourceEntries(postsDataSource.id);
+  const normalizedEntries = entries.map(normalizeEntry);
+
+  ensureUniqueSlugs(normalizedEntries, "post");
 
   return {
-    entries: entries.map(normalizeEntry),
+    entries: normalizedEntries,
   };
 }
 
